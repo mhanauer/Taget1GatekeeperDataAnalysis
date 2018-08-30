@@ -39,6 +39,7 @@ library(plyr)
 library(DescTools)
 library(MissMech)
 library(robustlmm)
+library(jtools)
 ```
 
 
@@ -91,10 +92,13 @@ datPost = data.frame(datPost)
 
 datPrePost = merge(datPre, datPost, by = "ID",  all = TRUE)
 
+head(datPrePost)
 ### Now make long format
 ### These variables are not included: 							
 
-datPrePost = reshape(datPrePost, varying  = list(c("Treatment.x", "Treatment.y"), c("Sec1Qa.x", "Sec1Qa.y"), c("Sec1Qb.x", "Sec1Qb.y"), c("Sec1Qc.x", "Sec1Qc.y"), c("Sec1Qd.x", "Sec1Qd.y"), c("Sec1Qe.x", "Sec1Qe.y"), c("Sec1Qf.x", "Sec1Qf.y"), c("Sec1Qg.x", "Sec1Qg.y"), c("Sec1Qh.x", "Sec1Qh.y"), c("Sec1Qi.x", "Sec1Qi.y"), c("Sec1Qk.x", "Sec1Qk.y"), c("Sec1Ql.x", "Sec1Ql.y"), c("Sec2Qa.x", "Sec2Qa.y"), c("Sec2Qb.x", "Sec2Qb.y"), c("Sec2Qc.x", "Sec2Qc.y"), c("Sec2Qd.x", "Sec2Qd.y"), c("Sec2Qe.x", "Sec2Qe.y"), c("Sec2Qf.x", "Sec2Qf.y"), c("Sec2Qg.x", "Sec2Qg.y"), c("Sec2Qh.x", "Sec2Qh.y"), c("Sec2Qi.x", "Sec2Qi.y"), c("Sec2Qj.x", "Sec2Qj.y"), c("Sec2Qk.x", "Sec2Qk.y"), c("Sec2Ql.x", "Sec2Ql.y"), c("Sec2Qm.x", "Sec2Qm.y"), c("Sec2Qn.x", "Sec2Qn.y"), c("Sec2Qo.x", "Sec2Qo.y"), c("Sec3Qa.x", "Sec3Qa.y"), c("Sec3Qb.x", "Sec3Qb.y"), c("Sec3Qc.x", "Sec3Qc.y"), c("Sec3Qd.x", "Sec3Qd.y"), c("Sec3Qe.x", "Sec3Qe.y"), c("Sec3Qf.x", "Sec3Qf.y"), c("Sec3Qg.x", "Sec3Qg.y"), c("Sec3Qh.x", "Sec3Qh.y"), c("Sec4QaA.x", "Sec4QaA.y"), c("Sec4QfA.x", "Sec4QfA.y"), c("Sec4QfB.x", "Sec4QfB.y"), c("Sec4QgA.x", "Sec4QgA.y"), c("Sec4QgB.x", "Sec4QgB.y"), c("Sec4QhA.x", "Sec4QhA.y"), c("Sec4QhB.x", "Sec4QhB.y"), c("Sec4QiA.x", "Sec4QiA.y"), c("Sec4QiB.x", "Sec4QiB.y"), c("Sec4QjA.x", "Sec4QjA.y"), c("Sec4QjB.x", "Sec4QjB.y"), c("Sec4QkA.x", "Sec4QkA.y"), c("Sec4QkB.x", "Sec4QkB.y"), c("Sec4QlA.x", "Sec4QlA.y"), c("Sec4QlB.x", "Sec4QlB.y"), c("Sec1Qj.x", "Sec1Qj.y"), c("Sec4QaB.x", "Sec4QaB.y"), c("Sec4QbA.x", "Sec4QbA.y"), c("Sec4QbB.x", "Sec4QbB.y"), c("Sec4QcA.x", "Sec4QcA.y"), c("Sec4QcB.x", "Sec4QcB.y"), c("Sec4QdA.x", "Sec4QdA.y"), c("Sec4QdB.x", "Sec4QdB.y"), c("Sec4QeA.x", "Sec4QeA.y"), c("Sec4QeB.x", "Sec4QeB.y")), direction = "long", times =c(0,1))
+datPrePost = reshape(datPrePost, varying  = list(c("Treatment.x", "Treatment.y"), c("Sec1Qa.x", "Sec1Qa.y"), c("Sec1Qb.x", "Sec1Qb.y"), c("Sec1Qc.x", "Sec1Qc.y"), c("Sec1Qd.x", "Sec1Qd.y"), c("Sec1Qe.x", "Sec1Qe.y"), c("Sec1Qf.x", "Sec1Qf.y"), c("Sec1Qg.x", "Sec1Qg.y"), c("Sec1Qh.x", "Sec1Qh.y"), c("Sec1Qi.x", "Sec1Qi.y"), c("Sec1Qj.x", "Sec1Qj.y"), c("Sec1Qk.x", "Sec1Qk.y"), c("Sec1Ql.x", "Sec1Ql.y"), c("Sec2Qa.x", "Sec2Qa.y"), c("Sec2Qb.x", "Sec2Qb.y"), c("Sec2Qc.x", "Sec2Qc.y"), c("Sec2Qd.x", "Sec2Qd.y"), c("Sec2Qe.x", "Sec2Qe.y"), c("Sec2Qf.x", "Sec2Qf.y"), c("Sec2Qg.x", "Sec2Qg.y"), c("Sec2Qh.x", "Sec2Qh.y"), c("Sec2Qi.x", "Sec2Qi.y"), c("Sec2Qj.x", "Sec2Qj.y"), c("Sec2Qk.x", "Sec2Qk.y"), c("Sec2Ql.x", "Sec2Ql.y"), c("Sec2Qm.x", "Sec2Qm.y"), c("Sec2Qn.x", "Sec2Qn.y"), c("Sec2Qo.x", "Sec2Qo.y"), c("Sec3Qa.x", "Sec3Qa.y"), c("Sec3Qb.x", "Sec3Qb.y"), c("Sec3Qc.x", "Sec3Qc.y"), c("Sec3Qd.x", "Sec3Qd.y"), c("Sec3Qe.x", "Sec3Qe.y"), c("Sec3Qf.x", "Sec3Qf.y"), c("Sec3Qg.x", "Sec3Qg.y"), c("Sec3Qh.x", "Sec3Qh.y"), c("Sec4QaA.x", "Sec4QaA.y"), c("Sec4QaB.x", "Sec4QaB.y"), c("Sec4QbA.x", "Sec4QbA.y"), c("Sec4QbB.x", "Sec4QbB.y"), c("Sec4QcA.x", "Sec4QcA.y"), c("Sec4QcB.x", "Sec4QcB.y"), c("Sec4QdA.x", "Sec4QdA.y"), c("Sec4QdB.x", "Sec4QdB.y"), c("Sec4QeA.x", "Sec4QeA.y"), c("Sec4QeB.x", "Sec4QeB.y"), c("Sec4QfA.x", "Sec4QfA.y"), c("Sec4QfB.x", "Sec4QfB.y"), c("Sec4QgA.x", "Sec4QgA.y"), c("Sec4QgB.x", "Sec4QgB.y"), c("Sec4QhA.x", "Sec4QhA.y"), c("Sec4QhB.x", "Sec4QhB.y"), c("Sec4QiA.x", "Sec4QiA.y"), c("Sec4QiB.x", "Sec4QiB.y"), c("Sec4QjA.x", "Sec4QjA.y"), c("Sec4QjB.x", "Sec4QjB.y"), c("Sec4QkA.x", "Sec4QkA.y"), c("Sec4QkB.x", "Sec4QkB.y"), c("Sec4QlA.x", "Sec4QlA.y"), c("Sec4QlB.x", "Sec4QlB.y")), direction = "long", times =c(0,1))
+
+head(datPrePost)
 
 ```
 Look at descirptives, then do basic psychometrics
@@ -135,7 +139,7 @@ describe.factor(datPrePost$Sec1Qh.x)
 describe.factor(datPrePost$Sec1Qk.x) 
 datPrePost$Sec1Qk.x =ifelse(datPrePost$Sec1Qk.x == 5, NA, datPrePost$Sec1Qk.x)
 describe.factor(datPrePost$Sec1Qk.x)
-summary(datPrePost)
+
 
 describe.factor(datPrePost$Sec2Qf.x)
 datPrePost$Sec2Qf.x = ifelse(datPrePost$Sec2Qf.x == 0, NA, datPrePost$Sec2Qf.x)
@@ -190,62 +194,45 @@ Need to do this for every pair.  Rename each var with
 ```{r}
 head(datPrePost)
 
-datPrePost$Sec4Qa = ifelse(datPrePost$Sec4QaA.x < datPrePost$Sec4QaB.x, 1, 0)
-describe.factor(datPrePost$Sec4Qa)
+datPrePost$Sec4QaA.x =  -2.71 - datPrePost$Sec4QaA.x
+datPrePost$Sec4QaB.x =  1.86 - datPrePost$Sec4QaB.x
 
-datPrePost$Sec4Qb = ifelse(datPrePost$Sec4QbA.x < datPrePost$Sec4QbB.x, 1, 0)
-describe.factor(datPrePost$Sec4Qb)
+datPrePost$Sec4QbA.x =  -2.71 - datPrePost$Sec4QbA.x
+datPrePost$Sec4QbB.x =  1.86 - datPrePost$Sec4QbB.x
 
-datPrePost$Sec4Qc = ifelse(datPrePost$Sec4QcA.x < datPrePost$Sec4QcB.x, 1, 0)
-describe.factor(datPrePost$Sec4Qc)
+datPrePost$Sec4QcA.x =  -2.14 - datPrePost$Sec4QcA.x
+datPrePost$Sec4QcB.x =  2.14 - datPrePost$Sec4QcB.x
 
-testC = data.frame(Time = datPrePost$time,Sec4QcA.x = datPrePost$Sec4QcA.x, Sec4QcB.x = datPrePost$Sec4QcB.x)
-apply(testC, 2, mean, na.rm = TRUE)
-compmeans(testC$Sec4QcB.x, testC$Time)
+datPrePost$Sec4QdA.x =  1.29 - datPrePost$Sec4QdA.x
+datPrePost$Sec4QdB.x =  -2.71 - datPrePost$Sec4QdB.x
 
+datPrePost$Sec4QeA.x =  2.43 - datPrePost$Sec4QeA.x
+datPrePost$Sec4QeB.x =  -2.71 - datPrePost$Sec4QeB.x
 
-datPrePost$Sec4Qd = ifelse(datPrePost$Sec4QdA.x > datPrePost$Sec4QdB.x, 1, 0)
-describe.factor(datPrePost$Sec4Qd)
-
-# This item is moving in the wrong direction over time
-testD = data.frame(Time = datPrePost$time,Sec4QdA.x = datPrePost$Sec4QdA.x, Sec4QdB.x = datPrePost$Sec4QdB.x)
-apply(testD, 2, mean, na.rm = TRUE)
-compmeans(testD$Sec4QdA.x, testD$Time)
-
-datPrePost$Sec4Qe = ifelse(datPrePost$Sec4QeA.x > datPrePost$Sec4QeB.x, 1, 0)
-describe.factor(datPrePost$Sec4Qe)
-
-datPrePost$Sec4Qf = ifelse(datPrePost$Sec4QfA.x < datPrePost$Sec4QfB.x, 1, 0)
-describe.factor(datPrePost$Sec4Qf)
-
-datPrePost$Sec4Qg = ifelse(datPrePost$Sec4QgA.x > datPrePost$Sec4QgB.x, 1, 0)
-describe.factor(datPrePost$Sec4Qg)
-
-datPrePost$Sec4Qh = ifelse(datPrePost$Sec4QhA.x < datPrePost$Sec4QhB.x, 1, 0)
-describe.factor(datPrePost$Sec4Qh)
-
-datPrePost$Sec4Qi = ifelse(datPrePost$Sec4QiA.x < datPrePost$Sec4QiB.x, 1, 0)
-describe.factor(datPrePost$Sec4Qi)
-
-datPrePost$Sec4Qj = ifelse(datPrePost$Sec4QjA.x > datPrePost$Sec4QjB.x, 1, 0)
-describe.factor(datPrePost$Sec4Qj)
-
-datPrePost$Sec4Qk = ifelse(datPrePost$Sec4QkA.x < datPrePost$Sec4QkB.x, 1, 0)
-describe.factor(datPrePost$Sec4Qk)
-
-# This item is not moving at all
-testK = data.frame(Time = datPrePost$time,Sec4QkA.x = datPrePost$Sec4QkA.x, Sec4QkB.x = datPrePost$Sec4QkB.x)
-apply(testK, 2, mean, na.rm = TRUE)
-compmeans(testK$Sec4QkB.x, testK$Time)
+datPrePost$Sec4QfA.x =  -2 - datPrePost$Sec4QfA.x
+datPrePost$Sec4QfB.x =  2.57 - datPrePost$Sec4QfB.x
 
 
-datPrePost$Sec4Ql = ifelse(datPrePost$Sec4QlA.x > datPrePost$Sec4QlB.x, 1, 0)
-describe.factor(datPrePost$Sec4Ql)
+datPrePost$Sec4QgA.x =  2 - datPrePost$Sec4QgA.x
+datPrePost$Sec4QgB.x =  -1.29 - datPrePost$Sec4QgB.x
 
-# This item is not moving over time
-testL = data.frame(Time = datPrePost$time,Sec4QlA.x = datPrePost$Sec4QlA.x, Sec4QlB.x = datPrePost$Sec4QlB.x)
-apply(testL, 2, mean, na.rm = TRUE)
-compmeans(testL$Sec4QlA.x, testL$Time)
+datPrePost$Sec4QhA.x =  -2.29 - datPrePost$Sec4QhA.x
+datPrePost$Sec4QgB =  2.14 - datPrePost$Sec4QgB.x
+
+datPrePost$Sec4QhA.x =  -2.29 - datPrePost$Sec4QhA.x
+datPrePost$Sec4QgB.x =  2.14 - datPrePost$Sec4QgB.x
+
+datPrePost$Sec4QiA.x =  -1.29 - datPrePost$Sec4QiA.x
+datPrePost$Sec4QiB.x =  1.29 - datPrePost$Sec4QiB.x
+
+datPrePost$Sec4QjA.x =  2.29 - datPrePost$Sec4QjA.x
+datPrePost$Sec4QjB.x =  -2.43 - datPrePost$Sec4QjB.x
+
+datPrePost$Sec4QkA.x =  -2.42 - datPrePost$Sec4QkA.x
+datPrePost$Sec4QkB.x =  2.43 - datPrePost$Sec4QkB.x
+
+datPrePost$Sec4QlA.x =  2.00 - datPrePost$Sec4QlA.x
+datPrePost$Sec4QkB.x =  3.00 - datPrePost$Sec4QlB.x
 
 ```
 
@@ -259,6 +246,9 @@ Measure two has great reliabiltiy, not bad for measure three, worry about measur
 
 ```{r}
 ## Reliability for section one
+head(datPrePost)
+
+
 datPrePostSec1 = datPrePost[,c(7,9:21)]
 head(datPrePostSec1)
 
@@ -316,7 +306,7 @@ summary(omegaSec3Base)
 
 ##Reliability for section four
 head(datPrePost)
-datPrePostSec4 = datPrePost[,c(7, 69:80)]
+datPrePostSec4 = datPrePost[,c(7, 44:58)]
 head(datPrePostSec4)
 
 datPrePostSec4Base = subset(datPrePostSec4, time == 0)
@@ -331,25 +321,6 @@ CronbachAlpha(datPrePostSec4Base, na.rm = TRUE)
 summary(datPrePostSec4Base)
 
 omegaSec4Base =  omega(datPrePostSec4Base)
-summary(omegaSec4Base)
-
-### Reliability for short version of section dropping c,d,k,l
-head(datPrePost)
-datPrePostSec4Short = datPrePost[,c(7, 69:70, 73:78)]
-head(datPrePostSec4Short)
-
-datPrePostSec4BaseShort = subset(datPrePostSec4Short, time == 0)
-describe.factor(datPrePostSec4BaseShort$time)
-datPrePostSec4BaseShort$time = NULL
-
-datPrePostSec4BaseShort = data.frame(datPrePostSec4BaseShort)
-write.csv(datPrePostSec4BaseShort, "datPrePostSec4BaseShort.csv", row.names = FALSE)
-datPrePostSec4Base = read.csv("datPrePostSec4BaseShort.csv", header = TRUE)
-
-CronbachAlpha(datPrePostSec4BaseShort, na.rm = TRUE)
-summary(datPrePostSec4BaseShort)
-
-omegaSec4Base =  omega(datPrePostSec4BaseShort)
 summary(omegaSec4Base)
 
 ```
@@ -416,17 +387,6 @@ Only 5% if the data is missing, but missing at random test is significant
 
 For this analysis, change gender 1,0, Race to white versus non-white (5 versus everything else), edu to bachelors and below versus masters and above (5 and below 1)
 
-Just deleting values for now run imputation later
-
-Remember need to grab just the baseline
-
-```{r}
-Sec1BaseTotal = rowSums(datPrePostSec1Base, na.rm = TRUE)
-Sec2BaseTotal = rowSums(datPrePostSec2Base, na.rm = TRUE)
-Sec3BaseTotal = rowSums(datPrePostSec3Base, na.rm = TRUE)
-Sec4BaseTotal = rowSums(datPrePostSec4Base, na.rm = TRUE)
-Sec4BaseTotalShort = rowSums(datPrePostSec4BaseShort, na.rm = TRUE)
-```
 
 Ok moving on to analysis
 Data cleaning for analysis
@@ -434,10 +394,10 @@ Data cleaning for analysis
 Sec1Total = rowSums(datPrePostSec1, na.rm = TRUE)
 Sec2Total = rowSums(datPrePostSec2, na.rm = TRUE)
 Sec3Total = rowSums(datPrePostSec3, na.rm = TRUE)
-Sec4BaseTotal = rowSums(datPrePostSec4, na.rm = TRUE)
-Sec4BaseTotalShort = rowSums(datPrePostSec4Short, na.rm = TRUE)
+Sec4Total = rowSums(datPrePostSec4, na.rm = TRUE)
+Sec4TotalShort = rowSums(datPrePostSec4Short, na.rm = TRUE)
 
-datPrePostAnalysis = data.frame(ID = datPrePost$ID, Treatment = datPrePost$Treatment.x, Age =  datPrePost$Age, Gender = datPrePost$Gender, Race = datPrePost$Race, Edu = datPrePost$Edu, Time = datPrePost$time,Sec1Total =  Sec1BaseTotal, Sec2Total = Sec2Total, Sec3Total = Sec3Total)
+datPrePostAnalysis = data.frame(ID = datPrePost$ID, Treatment = datPrePost$Treatment.x, Age =  datPrePost$Age, Gender = datPrePost$Gender, Race = datPrePost$Race, Edu = datPrePost$Edu, Time = datPrePost$time,Sec1Total =  Sec1Total, Sec2Total = Sec2Total, Sec3Total = Sec3Total, Sec4Total = Sec4Total, Sec4TotalShort = Sec4TotalShort)
 
 datPrePostAnalysis$Gender = ifelse(datPrePostAnalysis$Gender == 1,1,0)
 datPrePostAnalysis$Race = ifelse(datPrePostAnalysis$Race == 5, 0, 1)
@@ -455,30 +415,32 @@ datPrePostAnalysisTest = read.csv("datPrePostAnalysisTest.csv", header = TRUE)
 datPrePostAnalysisTest$Treatment = as.factor(datPrePostAnalysisTest$Treatment)
 datPrePostAnalysisTest$Time = as.factor(datPrePostAnalysisTest$Time)
 ```
-
-
-Try adding robust as well need to read into this
-
-Problem not converging.  I wonder if we need to get rid of one of the treatments, because there is not enough data to estimate the difference?
-
-Ok so basically some people are starting lower, but the end result is the same
+Running model one
 ```{r}
-
-
-# Not working double check (may be a bad measure)
 modelOutcome1 = lmer(Sec1Total ~ Treatment*Time + (1 | ID),  data = datPrePostAnalysisTest)
 summary(modelOutcome1)
 
-## Working!!! Yay!!!!
+## Plotting the interaction effect
+cat_plot(modelOutcome1, pred = "Time", modx = "Treatment", cluster = "ID")
 
-modelOutcome2Robust = rlmer(Sec2Total ~ Treatment*Time + (1 | ID),  data = datPrePostAnalysisTest)
+modelOutcome1Robust = rlmer(Sec1Total ~ Treatment*Time + (1 | ID),  data = datPrePostAnalysisTest)
+summary(modelOutcome1Robust)
 # Get p-values
-coefs = data.frame(coef(summary(modelOutcome2Robust)))
+coefs = data.frame(coef(summary(modelOutcome1Robust)))
 coefs$p.z <- 2 * (1 - pnorm(abs(coefs$t.value)))
 coefs
 
-### Try adding additional covariates 
+```
+Running model with section two outcomes
+```{r}
+## Final model goes here
+modelOutcome2 = lmer(Sec2Total ~ Treatment*Time + Edu + Gender + Age + Race + (1 | ID),  data = datPrePostAnalysisTest)
+summary(modelOutcome2)
 
+## Plotting the interaction effect
+cat_plot(modelOutcome2, pred = "Time", modx = "Treatment", cluster = "ID")
+
+###  Robust model here same results
 modelOutcome2Robust = rlmer(Sec2Total ~ Treatment*Time + Edu + Gender + Age + Race + (1 | ID),  data = datPrePostAnalysisTest)
 # Get p-values
 coefs = data.frame(coef(summary(modelOutcome2Robust)))
@@ -498,17 +460,44 @@ modelOutcome2Robust = rlmer(Sec2Total ~ Treatment*Time + (Time | ID),  data = da
 coefs = data.frame(coef(summary(modelOutcome2Robust)))
 coefs$p.z <- 2 * (1 - pnorm(abs(coefs$t.value)))
 coefs
-
-## Cannot run robust with contrasts so just regular
-
-
-modelOutcome2 = lmer(Sec2Total ~ Treatment*Time + + Edu + Gender + Age + Race + + (1 | ID),  data = datPrePostAnalysisTest)
-summary(modelOutcome2)
-library(jtools)
-cat_plot(modelOutcome2, pred = "Time", modx = "Treatment", cluster = "ID")
-
-## Working!!! Yay!!!!
-modelOutcome3 = rlmer(Sec3Total ~ Treatment*Time + (1 | ID),  data = datPrePostAnalysisTest)
+```
+Model three 
+```{r}
+## Final model goes here
+modelOutcome3 = lmer(Sec3Total ~ Treatment*Time + Edu + Gender + Age + Race + (1 | ID),  data = datPrePostAnalysisTest)
 summary(modelOutcome3)
 
+## Plotting the interaction effect
+cat_plot(modelOutcome3, pred = "Time", modx = "Treatment", cluster = "ID")
+
+modelOutcome3Robust = rlmer(Sec3Total ~ Treatment*Time + Edu + Gender + Age + Race + (1 | ID),  data = datPrePostAnalysisTest)
+summary(modelOutcome3Robust)
+coefs = data.frame(coef(summary(modelOutcome3Robust)))
+coefs$p.z <- 2 * (1 - pnorm(abs(coefs$t.value)))
+coefs
 ```
+Model 4 original form
+```{r}
+## Final model goes here
+modelOutcome4 = lmer(Sec4Total ~ Treatment*Time + Edu + Gender + Age + Race + (1 | ID),  data = datPrePostAnalysisTest)
+summary(modelOutcome4)
+
+
+## Plotting the interaction effect
+cat_plot(modelOutcome4, pred = "Time", modx = "Treatment", cluster = "ID")
+
+modelOutcome4Robust = rlmer(Sec4Total ~ Treatment*Time + Edu + Gender + Age + Race + (1 | ID),  data = datPrePostAnalysisTest)
+summary(modelOutcome4Robust)
+coefs = data.frame(coef(summary(modelOutcome4Robust)))
+coefs$p.z <- 2 * (1 - pnorm(abs(coefs$t.value)))
+coefs
+```
+Model 4 with shorter version
+```{r}
+
+```
+
+
+
+
+
