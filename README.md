@@ -40,8 +40,11 @@ library(DescTools)
 library(MissMech)
 library(robustlmm)
 library(jtools)
-library(lmtest)
 library(lmerTest)
+library(MuMIn)
+library(HLMdiag)
+library(sjstats)
+library(multcomp)
 ```
 
 
@@ -426,10 +429,6 @@ fit4 = cfa(model4, estimator = "MLR",  missing = "fiml", std.lv = TRUE, data = d
 summary(fit4, fit.measures = TRUE)
 
 ```
-
-
-
-
 Now we are getting total scores for the three measures use apply and create a smaller data set.
 
 Then put that data set back together call it analysis at the end.
@@ -523,480 +522,1376 @@ datPrePost3monthAnalysis = read.csv("datPrePost3monthAnalysis.csv", header = TRU
 
 TestMCARNormality(datPrePost3monthAnalysis)
 ```
-Running model one with complete 
+Get descriptives for each time point
 ```{r}
-modelOutcome1 = lmer(Sec1Total ~ factor(Treatment)*Time  +  Edu + Gender + Age + Race + (1 | ID),  data = datPrePost3monthAnalysisComplete)
-summary(modelOutcome1)
-
-library(emmeans)
-m.emm = emmeans(modelOutcome1, "Treatment")
-m.emm
-contrast()
-
-## R^2
-r.squaredLR(modelOutcome1)
-
-## Plotting the interaction effect
-cat_plot(modelOutcome1, pred = "Time", modx = "Treatment", cluster = "ID")
-
-modelOutcome1Robust = rlmer(Sec1Total ~ Treatment*Time + (1 | ID),  data = datPrePost3monthAnalysisComplete)
-summary(modelOutcome1Robust)
-# Get p-values
-coefs = data.frame(coef(summary(modelOutcome1Robust)))
-coefs$p.z <- 2 * (1 - pnorm(abs(coefs$t.value)))
-coefs
-
-### Getting residuals for level one
-residModel1Level1 = HLMresid(modelOutcome1, level = 1, standardize = TRUE)
-
-head(residModel1Level1)
-ggplot_qqnorm(x = residModel1Level1, line = "rlm")
-
-### Getting residuals for level two
-residModel1Level2 = HLMresid(modelOutcome1, level = "ID", standardize = TRUE)
-head(residModel1Level2)
-ggplot_qqnorm(x = residModel1Level2$`(Intercept)`, line = "rlm")
-
-```
-Model one moderators
-```{r}
-## Try model two with different moderators
-modelOutcome1Age = lmer(Sec1Total ~ Treatment*Time*Age + Edu + Gender  + Race + (1 | ID),  data = datPrePost3monthAnalysisComplete)
-summary(modelOutcome1Age)
-
-modelOutcome1Edu = lmer(Sec1Total ~ Treatment*Time*Edu + Age + Edu + Gender  + Race + (1 | ID),  data = datPrePost3monthAnalysisComplete)
-summary(modelOutcome1Edu)
-
-modelOutcome1Gender = lmer(Sec1Total ~ Treatment*Time*Gender + Age + Edu + Gender  + Race + (1 | ID),  data = datPrePost3monthAnalysisComplete)
-summary(modelOutcome1Gender)
-
-modelOutcome1Race = lmer(Sec1Total ~ Treatment*Time*Race + Age + Edu + Gender  + Race + (1 | ID),  data = datPrePost3monthAnalysisComplete)
-summary(modelOutcome1Race)
-```
-
-Model two 
-```{r}
-## Final model goes here
-modelOutcome2 = lmer(Sec2Total ~ Treatment*Time + Edu + Gender + Age + Race + (1 | ID),  data = datPrePost3monthAnalysisComplete)
-summary(modelOutcome2)
-
-anova(modelOutcome2, L = c("NumericPackage3:time" = 1, "NumericPackage2:time" = -1))
+datPrePost3monthAnalysisBase = subset(datPrePost3monthAnalysis, Time == 0)
+describe(datPrePost3monthAnalysis)
 
 
-resid2 = HLMresid(modelOutcome2, level = 1, standardize  = TRUE)
-head(resid2)
-
-# R^2
-r.squaredLR(modelOutcome2)
-
-## Plotting the interaction effect
-cat_plot(modelOutcome2, pred = "Time", modx = "Treatment", cluster = "ID")
-
-###  Robust model here same results
-modelOutcome2Robust = rlmer(Sec2Total ~ Treatment*Time + Edu + Gender + Age + Race + (1 | ID),  data = datPrePost3monthAnalysisComplete)
-# Get p-values
-coefs = data.frame(coef(summary(modelOutcome2Robust)))
-coefs$p.z <- 2 * (1 - pnorm(abs(coefs$t.value)))
-coefs
+datPrePost3monthAnalysisPost = subset(datPrePost3monthAnalysis, Time == 1)
+describe(datPrePost3monthAnalysisPost)
 
 
-### Getting residuals for level one
-residModel2Level1 = HLMresid(modelOutcome2, level = 1, standardize = TRUE)
-
-head(residModel2Level1)
-ggplot_qqnorm(x = residModel2Level1, line = "rlm")
-hist(residModel2Level1)
-summary(residModel2Level1)
-
-### Getting residuals for level two
-residModel2Level2 = HLMresid(modelOutcome2, level = "ID", standardize = TRUE)
-head(residModel2Level2)
-ggplot_qqnorm(x = residModel2Level2$`(Intercept)`, line = "rlm")
-hist(residModel2Level2)
-summary(residModel2Level2)
-
-## 
-
-```
-Model two moderators
-```{r}
-## Try model two with different moderators
-modelOutcome2Age = lmer(Sec2Total ~ Treatment*Time*Age + Edu + Gender  + Race + (1 | ID),  data = datPrePost3monthAnalysisComplete)
-summary(modelOutcome2Age)
-
-modelOutcome2Edu = lmer(Sec2Total ~ Treatment*Time*Edu + Age + Edu + Gender  + Race + (1 | ID),  data = datPrePost3monthAnalysisComplete)
-summary(modelOutcome2Edu)
-
-modelOutcome2Gender = lmer(Sec2Total ~ Treatment*Time*Gender + Age + Edu + Gender  + Race + (1 | ID),  data = datPrePost3monthAnalysisComplete)
-summary(modelOutcome2Gender)
-
-modelOutcome2Race = lmer(Sec2Total ~ Treatment*Time*Race + Age + Edu + Gender  + Race + (1 | ID),  data = datPrePost3monthAnalysisComplete)
-summary(modelOutcome2Race)
+datPrePost3monthAnalysis3month = subset(datPrePost3monthAnalysis, Time == 2)
+describe(datPrePost3monthAnalysis3month)
 ```
 
 
-Model three 
+Now generate missing data for varibles
+There are 18 data points so six people with treatment for three month follow-up but no treatment ID for pre or post. 
+Deleting them for now, but will check in later on this
+
+If data is still missing that means that there is zero data for the response
+
+Getting rid of missing values after imputation, because if there are still missing values that means that the entire data set is empty
 ```{r}
-## Final model goes here
-modelOutcome3 = lmer(Sec3Total ~ Treatment*Time + Edu + Gender + Age + Race + (1 | ID),  data = datPrePost3monthAnalysisComplete)
-summary(modelOutcome3)
+head(datPrePost3monthAnalysis)
+summary(datPrePost3monthAnalysis$ID)
 
-## Plotting the interaction effect
-cat_plot(modelOutcome3, pred = "Time", modx = "Treatment", cluster = "ID")
+# Getting rid of NA's for treatment
+datPrePost3monthAnalysis = subset(datPrePost3monthAnalysis, Treatment == 1 | Treatment == 2 | Treatment == 3)
+describe.factor(datPrePost3monthAnalysis$Treatment)
+m = 10
+head(datPrePost3monthAnalysis)
 
-## R^2
-r.squaredLR(modelOutcome3)
+datPrePost3monthAnalysisImpute = amelia(m = m, datPrePost3monthAnalysis, noms = c("Gender", "Race", "Edu"), idvars = c("ID", "Treatment"), ts = "Time")
 
+compare.density(datPrePost3monthAnalysisImpute, var = "Sec1Total")
+compare.density(datPrePost3monthAnalysisImpute, var = "Sec2Total")
+compare.density(datPrePost3monthAnalysisImpute, var = "Sec3Total")
+compare.density(datPrePost3monthAnalysisImpute, var = "Sec4Total")
+summary(datPrePost3monthAnalysisImpute)
+datAnalysisAll = lapply(1:m, function(x){datPrePost3monthAnalysisImpute$imputations[[x]]})
 
-## Robust version
-modelOutcome3Robust = rlmer(Sec3Total ~ Treatment*Time + Edu + Gender + Age + Race + (1 | ID),  data = datPrePost3monthAnalysisComplete)
-summary(modelOutcome3Robust)
-coefs = data.frame(coef(summary(modelOutcome3Robust)))
-coefs$p.z <- 2 * (1 - pnorm(abs(coefs$t.value)))
-coefs
+datAnalysisAllComplete = NULL
+for(i in 1:m){
+ datAnalysisAllComplete[[i]] = na.omit(datAnalysisAll[[i]])
+}
 
-### Getting residuals for level one
-residModel3Level1 = HLMresid(modelOutcome3, level = 1, standardize = TRUE)
-
-head(residModel3Level1)
-ggplot_qqnorm(x = residModel3Level1, line = "rlm")
-hist(residModel3Level1)
-summary(residModel3Level1)
-
-### Getting residuals for level two
-residModel3Level2 = HLMresid(modelOutcome3, level = "ID", standardize = TRUE)
-head(residModel3Level2)
-ggplot_qqnorm(x = residModel3Level2$`(Intercept)`, line = "rlm")
-hist(residModel3Level2)
-summary(residModel3Level2)
-```
-Model three moderators
-```{r}
-## Try model two with different moderators
-modelOutcome3Age = lmer(Sec3Total ~ Treatment*Time*Age + Edu + Gender  + Race + (1 | ID),  data = datPrePost3monthAnalysisComplete)
-summary(modelOutcome3Age)
-
-modelOutcome3Edu = lmer(Sec3Total ~ Treatment*Time*Edu + Age + Edu + Gender  + Race + (1 | ID),  data = datPrePost3monthAnalysisComplete)
-summary(modelOutcome3Edu)
-
-
-modelOutcome3Gender = lmer(Sec3Total ~ Treatment*Time*Gender + Age + Edu + Gender  + Race + (1 | ID),  data = datPrePost3monthAnalysisComplete)
-summary(modelOutcome3Gender)
-
-# Cross over interaction .09 maybe worth talking about
-modelOutcome3Race = lmer(Sec3Total ~ Treatment*Time*Race + Age + Edu + Gender  + Race + (1 | ID),  data = datPrePost3monthAnalysisComplete)
-summary(modelOutcome3Race)
-```
-
-
-
-Model 4 
-```{r}
-## Final model goes here
-modelOutcome4 = lmer(Sec4Total ~ Treatment*Time + Edu + Gender + Age + Race + (1 | ID),  data = datPrePost3monthAnalysisComplete)
-summary(modelOutcome4)
-
-
-## Plotting the interaction effect
-cat_plot(modelOutcome4, pred = "Time", modx = "Treatment", cluster = "ID")
-
-##R^2
-r.squaredLR(modelOutcome4)
-
-
-##Robust version
-modelOutcome4Robust = rlmer(Sec4Total ~ Treatment*Time + Edu + Gender + Age + Race + (1 | ID),  data = datPrePost3monthAnalysisComplete)
-summary(modelOutcome4Robust)
-coefs = data.frame(coef(summary(modelOutcome4Robust)))
-coefs$p.z <- 2 * (1 - pnorm(abs(coefs$t.value)))
-coefs
-
-### Getting residuals for level one
-residModel4Level1 = HLMresid(modelOutcome4, level = 1, standardize = TRUE)
-
-head(residModel4Level1)
-ggplot_qqnorm(x = residModel4Level1, line = "rlm")
-hist(residModel4Level1)
-summary(residModel4Level1)
-
-### Getting residuals for level two
-residModel4Level2 = HLMresid(modelOutcome4, level = "ID", standardize = TRUE)
-head(residModel4Level2)
-ggplot_qqnorm(x = residModel4Level2$`(Intercept)`, line = "rlm")
-hist(residModel4Level2)
-summary(residModel4Level2)
-
-leverage(modelOutcome4, level = 1)
-```
-Model four moderators
-```{r}
-## Try model two with different moderators
-modelOutcome4Age = lmer(Sec4Total ~ Treatment*Time*Age + Edu + Gender  + Race + (1 | ID),  data = datPrePost3monthAnalysisComplete)
-summary(modelOutcome4Age)
-
-modelOutcome4Edu = lmer(Sec4Total ~ Treatment*Time*Edu + Age + Edu + Gender  + Race + (1 | ID),  data = datPrePost3monthAnalysisComplete)
-summary(modelOutcome4Edu)
-
-# Significant
-modelOutcome4Gender = lmer(Sec4Total ~ Treatment*Time*Gender + Age + Edu + Gender  + Race + (1 | ID),  data = datPrePost3monthAnalysisComplete)
-summary(modelOutcome4Gender)
-
-cat_plot(modelOutcome4Gender, pred = "Time", modx = "Treatment", mod2 = "Gender", cluster = "ID")
-
-
-modelOutcome4Race = lmer(Sec4Total ~ Treatment*Time*Race + Age + Edu + Gender  + Race + (1 | ID),  data = datPrePost3monthAnalysisComplete)
-summary(modelOutcome4Race)
-```
-####################################################
-Running models starting with one with complete for Pre and Post
-####################################################
-```{r}
-datPrePostAnalysisComplete$Treatment = as.factor(datPrePostAnalysisComplete$Treatment)
-modelOutcome1 = lmer(Sec1Total ~ Treatment*Time  +  Edu + Gender + Age + Race + (1 | ID),  data = datPrePostAnalysisComplete)
-summary(modelOutcome1)
-
-## R^2
-r.squaredLR(modelOutcome1)
-
-## Plotting the interaction effect
-cat_plot(modelOutcome1, pred = "Time", modx = "Treatment", cluster = "ID")
-
-modelOutcome1Robust = rlmer(Sec1Total ~ Treatment*Time + (1 | ID),  data = datPrePostAnalysisComplete)
-summary(modelOutcome1Robust)
-# Get p-values
-coefs = data.frame(coef(summary(modelOutcome1Robust)))
-coefs$p.z <- 2 * (1 - pnorm(abs(coefs$t.value)))
-coefs
-
-### Getting residuals for level one
-residModel1Level1 = HLMresid(modelOutcome1, level = 1, standardize = TRUE)
-
-head(residModel1Level1)
-ggplot_qqnorm(x = residModel1Level1, line = "rlm")
-
-### Getting residuals for level two
-residModel1Level2 = HLMresid(modelOutcome1, level = "ID", standardize = TRUE)
-head(residModel1Level2)
-ggplot_qqnorm(x = residModel1Level2$`(Intercept)`, line = "rlm")
 
 ```
-Model one moderators
+Now get desciptives for base
 ```{r}
-## Try model two with different moderators
-modelOutcome1Age = lmer(Sec1Total ~ Treatment*Time*Age + Edu + Gender  + Race + (1 | ID),  data = datPrePostAnalysisComplete)
-summary(modelOutcome1Age)
+datAnalysisAllDes = lapply(1:m, function(x){subset(datAnalysisAll[[x]], Time == 0)})
 
-modelOutcome1Edu = lmer(Sec1Total ~ Treatment*Time*Edu + Age + Edu + Gender  + Race + (1 | ID),  data = datPrePostAnalysisComplete)
-summary(modelOutcome1Edu)
+mean.out = NULL
+for(i in 1:m) {
+  mean.out[[i]] = apply(datAnalysisAllDes[[i]], 2, mean)
+  mean.out = data.frame(mean.out)
+}
+mean.out
 
-modelOutcome1Gender = lmer(Sec1Total ~ Treatment*Time*Gender + Age + Edu + Gender  + Race + (1 | ID),  data = datPrePostAnalysisComplete)
-summary(modelOutcome1Gender)
+descFun = function(x){
+  x = data.frame(t(x))
+}
+mean.out = descFun(mean.out)
+mean.out
 
-modelOutcome1Race = lmer(Sec1Total ~ Treatment*Time*Race + Age + Edu + Gender  + Race + (1 | ID),  data = datPrePostAnalysisComplete)
-summary(modelOutcome1Race)
+# now get sds
+sd.out = NULL
+for(i in 1:m) {
+  sd.out[[i]] = apply(datAnalysisAllDes[[i]], 2, sd)
+  sd.out = data.frame(sd.out)
+}
+sd.out = descFun(sd.out)
+sd.out
+mean.sd.out= mi.meld(mean.out, sd.out)
+mean.sd.out
+
+```
+Now get descriptives for post
+```{r}
+datAnalysisAllDes = lapply(1:m, function(x){subset(datAnalysisAll[[x]], Time == 1)})
+
+mean.out = NULL
+for(i in 1:m) {
+  mean.out[[i]] = apply(datAnalysisAllDes[[i]], 2, mean)
+  mean.out = data.frame(mean.out)
+}
+mean.out
+
+descFun = function(x){
+  x = data.frame(t(x))
+}
+mean.out = descFun(mean.out)
+mean.out
+
+# now get sds
+sd.out = NULL
+for(i in 1:m) {
+  sd.out[[i]] = apply(datAnalysisAllDes[[i]], 2, sd)
+  sd.out = data.frame(sd.out)
+}
+sd.out = descFun(sd.out)
+sd.out
+mean.sd.out= mi.meld(mean.out, sd.out)
+mean.sd.out
+
+```
+Now get descriptives for 3month
+```{r}
+datAnalysisAllDes = lapply(1:m, function(x){subset(datAnalysisAll[[x]], Time == 2)})
+
+mean.out = NULL
+for(i in 1:m) {
+  mean.out[[i]] = apply(datAnalysisAllDes[[i]], 2, mean)
+  mean.out = data.frame(mean.out)
+}
+mean.out
+
+descFun = function(x){
+  x = data.frame(t(x))
+}
+mean.out = descFun(mean.out)
+mean.out
+
+# now get sds
+sd.out = NULL
+for(i in 1:m) {
+  sd.out[[i]] = apply(datAnalysisAllDes[[i]], 2, sd)
+  sd.out = data.frame(sd.out)
+}
+sd.out = descFun(sd.out)
+sd.out
+mean.sd.out= mi.meld(mean.out, sd.out)
+mean.sd.out
+
+```
+######################
+Now run model 1
+######################
+
+```{r}
+output = list()
+outputReg = list()
+coef_output =  NULL
+se_output = NULL
+rSquared = NULL
+
+for(i in 1:m){
+  output[[i]] = lmer(Sec1Total ~ factor(Treatment)*poly(Time, 2) +  Edu + Gender + Age + Race + (1 | ID), data  = datAnalysisAll[[i]])
+  outputReg[[i]] = output[[i]]
+  rSquared[[i]] = r.squaredGLMM(output[[i]])
+  output[[i]] = summary(output[[i]])
+  coef_output[[i]] = output[[i]]$coefficients[,1]
+  se_output[[i]] = output[[i]]$coefficients[,2]
+}
+coef_output = data.frame(coef_output)
+coef_output
+quickTrans = function(x){
+  x = data.frame(x)
+  x = t(x)
+  x = data.frame(x)
+}
+coef_output = quickTrans(coef_output)
+coef_output
+se_output = quickTrans(se_output)
+
+# Figure out the degrees of freedom 
+
+#coefsAll = mi.meld(q = coef_output, se = se_output)
+
+meldAllT_stat = function(x,y){
+  coefsAll = mi.meld(q = x, se = y)
+  coefs1 = t(data.frame(coefsAll$q.mi))
+  ses1 = t(data.frame(coefsAll$se.mi))
+  z_stat = coefs1/ses1
+  p = 2*pnorm(-abs(z_stat))
+  return(data.frame(coefs1, ses1, z_stat, p))
+}
+
+results = meldAllT_stat(coef_output, se_output); results
+round(results,3) 
+
+### Figure out how to integrate this into each of the models
+stdBetaOutput = NULL
+for(i in 1:m){
+  stdBetaOutput[[i]] =  std_beta(outputReg[[i]])
+}
+stdBetaOutput
+
+```
+Model 1 model comparision
+First develop null models
+Then compare the no poly term with the poly term
+
+Then look at the ICC to evaluate the variance associated with between groups (i.e. people) or variance explained by including the random effects
+```{r}
+outputRegNull = list()
+
+for(i in 1:m){
+  outputRegNull[[i]] = lmer(Sec1Total ~  + (1 | ID), data  = datAnalysisAll[[i]])
+}
+
+
+outputRegNoPoly = list()
+for(i in 1:m){
+outputRegNoPoly[[i]] = lmer(Sec1Total ~ factor(Treatment)*Time +  Edu + Gender + Age + Race + (1 | ID), data  = datAnalysisAll[[i]])
+}
+
+outputAnova = NULL
+for(i in 1:m){
+  outputAnova[[i]] = anova(outputReg[[i]], outputRegNoPoly[[i]], outputRegNull[[i]])
+}
+#outputAnova
+
+iccOutput = NULL
+for(i in 1:m){
+ iccOutput[[i]] = icc(outputRegNull[[i]]) 
+}
+iccOutput
+
+```
+Now model one diagnoistics 
+In the paper if you need to cite these statistics just give a range
+```{r}
+rSquare = NULL
+for(i in 1:m){
+  rSquare[[i]]= r.squaredLR(outputReg[[i]])
+}
+rSquare
+
+residModel1Level1 = NULL
+for(i in 1:m){
+  residModel1Level1[[i]] = HLMresid(outputReg[[i]], level = 1, standardize = TRUE)
+}
+for(i in 1:m){
+hist(residModel1Level1[[i]])
+}
+
+heteroskedasticOutput = NULL
+for(i in 1:m){
+  heteroskedasticOutput[[i]] = heteroskedastic(outputReg[[i]])
+}
+heteroskedasticOutput
+
+
+multicollinOutput = NULL
+for(i in 1:m){
+  multicollinOutput[[i]] = multicollin(outputReg[[i]])
+}
+multicollinOutput
+```
+Now moderator model 
+```{r}
+modGraph = NULL
+
+for(i in 1:m){
+  modGraph[[i]] = cat_plot(model = outputRegNoPoly[[i]], pred = "Time", modx = "Treatment", cluster = "ID", data = datAnalysisAllComplete[[i]])
+}
+modGraph
+```
+Model one with moderators 
+Edu, Gender, Age, and Race
+```{r}
+output = list()
+outputReg = list()
+coef_output =  NULL
+se_output = NULL
+rSquared = NULL
+
+for(i in 1:m){
+  output[[i]] = lmer(Sec1Total ~ factor(Treatment)*Time*Edu +  Edu + Gender + Age + Race + (1 | ID), data  = datAnalysisAll[[i]])
+  outputReg[[i]] = output[[i]]
+  rSquared[[i]] = r.squaredGLMM(output[[i]])
+  output[[i]] = summary(output[[i]])
+  coef_output[[i]] = output[[i]]$coefficients[,1]
+  se_output[[i]] = output[[i]]$coefficients[,2]
+}
+coef_output = data.frame(coef_output)
+coef_output
+quickTrans = function(x){
+  x = data.frame(x)
+  x = t(x)
+  x = data.frame(x)
+}
+coef_output = quickTrans(coef_output)
+coef_output
+se_output = quickTrans(se_output)
+
+# Figure out the degrees of freedom 
+
+#coefsAll = mi.meld(q = coef_output, se = se_output)
+
+meldAllT_stat = function(x,y){
+  coefsAll = mi.meld(q = x, se = y)
+  coefs1 = t(data.frame(coefsAll$q.mi))
+  ses1 = t(data.frame(coefsAll$se.mi))
+  z_stat = coefs1/ses1
+  p = 2*pnorm(-abs(z_stat))
+  return(data.frame(coefs1, ses1, z_stat, p))
+}
+
+results = meldAllT_stat(coef_output, se_output); results
+round(results,3) 
+
+output = list()
+outputReg = list()
+coef_output =  NULL
+se_output = NULL
+rSquared = NULL
+
+for(i in 1:m){
+  output[[i]] = lmer(Sec1Total ~ factor(Treatment)*Time*Gender +  Edu + Gender + Age + Race + (1 | ID), data  = datAnalysisAll[[i]])
+  outputReg[[i]] = output[[i]]
+  rSquared[[i]] = r.squaredGLMM(output[[i]])
+  output[[i]] = summary(output[[i]])
+  coef_output[[i]] = output[[i]]$coefficients[,1]
+  se_output[[i]] = output[[i]]$coefficients[,2]
+}
+coef_output = data.frame(coef_output)
+coef_output
+quickTrans = function(x){
+  x = data.frame(x)
+  x = t(x)
+  x = data.frame(x)
+}
+coef_output = quickTrans(coef_output)
+coef_output
+se_output = quickTrans(se_output)
+
+
+meldAllT_stat = function(x,y){
+  coefsAll = mi.meld(q = x, se = y)
+  coefs1 = t(data.frame(coefsAll$q.mi))
+  ses1 = t(data.frame(coefsAll$se.mi))
+  z_stat = coefs1/ses1
+  p = 2*pnorm(-abs(z_stat))
+  return(data.frame(coefs1, ses1, z_stat, p))
+}
+
+results = meldAllT_stat(coef_output, se_output); results
+round(results,3) 
+
+output = list()
+outputReg = list()
+coef_output =  NULL
+se_output = NULL
+rSquared = NULL
+
+for(i in 1:m){
+  output[[i]] = lmer(Sec1Total ~ factor(Treatment)*Time*Age +  Edu + Gender + Age + Race + (1 | ID), data  = datAnalysisAll[[i]])
+  outputReg[[i]] = output[[i]]
+  rSquared[[i]] = r.squaredGLMM(output[[i]])
+  output[[i]] = summary(output[[i]])
+  coef_output[[i]] = output[[i]]$coefficients[,1]
+  se_output[[i]] = output[[i]]$coefficients[,2]
+}
+coef_output = data.frame(coef_output)
+coef_output
+quickTrans = function(x){
+  x = data.frame(x)
+  x = t(x)
+  x = data.frame(x)
+}
+coef_output = quickTrans(coef_output)
+coef_output
+se_output = quickTrans(se_output)
+
+
+meldAllT_stat = function(x,y){
+  coefsAll = mi.meld(q = x, se = y)
+  coefs1 = t(data.frame(coefsAll$q.mi))
+  ses1 = t(data.frame(coefsAll$se.mi))
+  z_stat = coefs1/ses1
+  p = 2*pnorm(-abs(z_stat))
+  return(data.frame(coefs1, ses1, z_stat, p))
+}
+
+results = meldAllT_stat(coef_output, se_output); results
+round(results,3)
+
+
+output = list()
+outputReg = list()
+coef_output =  NULL
+se_output = NULL
+rSquared = NULL
+
+for(i in 1:m){
+  output[[i]] = lmer(Sec1Total ~ factor(Treatment)*Time*Race +  Edu + Gender + Age + Race + (1 | ID), data  = datAnalysisAll[[i]])
+  outputReg[[i]] = output[[i]]
+  rSquared[[i]] = r.squaredGLMM(output[[i]])
+  output[[i]] = summary(output[[i]])
+  coef_output[[i]] = output[[i]]$coefficients[,1]
+  se_output[[i]] = output[[i]]$coefficients[,2]
+}
+coef_output = data.frame(coef_output)
+coef_output
+quickTrans = function(x){
+  x = data.frame(x)
+  x = t(x)
+  x = data.frame(x)
+}
+coef_output = quickTrans(coef_output)
+coef_output
+se_output = quickTrans(se_output)
+
+
+meldAllT_stat = function(x,y){
+  coefsAll = mi.meld(q = x, se = y)
+  coefs1 = t(data.frame(coefsAll$q.mi))
+  ses1 = t(data.frame(coefsAll$se.mi))
+  z_stat = coefs1/ses1
+  p = 2*pnorm(-abs(z_stat))
+  return(data.frame(coefs1, ses1, z_stat, p))
+}
+
+results = meldAllT_stat(coef_output, se_output); results
+round(results,3) 
+
+```
+Now get contrasts
+```{r}
+
+K1 = matrix(c(0,1,-1,0,0,0,0,0,0,0),1)
+K2 = matrix(c(0,1,-1,0,0,0,0,0,1,-1),1)
+K = K1-K2; K
+
+t = NULL
+for(i in 1:m){
+  t[[i]] = glht(outputRegNoPoly[[i]], linfct = K)
+  t[[i]] = summary(t[[i]])
+}
+t
+# No way to systematically grab the standard errors so just ballpark.  If significant maybe do something else.
+
+```
+######################
+Model 2
+######################
+Now run model 2
+
+```{r}
+output = list()
+outputReg = list()
+coef_output =  NULL
+se_output = NULL
+rSquared = NULL
+df = NULL
+
+for(i in 1:m){
+  output[[i]] = lmer(Sec2Total ~ factor(Treatment)*poly(Time, 2) +  Edu + Gender + Age + Race + (1 | ID), data  = datAnalysisAll[[i]])
+  outputReg[[i]] = output[[i]]
+  rSquared[[i]] = r.squaredGLMM(output[[i]])
+  output[[i]] = summary(output[[i]])
+  coef_output[[i]] = output[[i]]$coefficients[,1]
+  se_output[[i]] = output[[i]]$coefficients[,2]
+  df[[i]] = output[[i]]$coefficients[,3]
+}
+coef_output = data.frame(coef_output)
+coef_output
+quickTrans = function(x){
+  x = data.frame(x)
+  x = t(x)
+  x = data.frame(x)
+}
+coef_output = quickTrans(coef_output)
+coef_output
+se_output = quickTrans(se_output)
+
+# Figure out the degrees of freedom 
+
+#coefsAll = mi.meld(q = coef_output, se = se_output)
+
+meldAllT_stat = function(x,y){
+  coefsAll = mi.meld(q = x, se = y)
+  coefs1 = t(data.frame(coefsAll$q.mi))
+  ses1 = t(data.frame(coefsAll$se.mi))
+  z_stat = coefs1/ses1
+  p = 2*pnorm(-abs(z_stat))
+  return(data.frame(coefs1, ses1, z_stat, p))
+}
+
+results = meldAllT_stat(coef_output, se_output); results
+round(results,3) 
+
+
+
+```
+Model 2 model comparision
+First develop null models
+Then compare the no poly term with the poly term
+
+Need output regular (Reg) for model comparision cannot compare a summary of a model to another summary of a model
+```{r}
+outputRegNull = list()
+
+for(i in 1:m){
+  outputRegNull[[i]] = lmer(Sec2Total ~  + (1 | ID), data  = datAnalysisAll[[i]])
+}
+
+outputRegNoPoly = list()
+for(i in 1:m){
+outputRegNoPoly[[i]] = lmer(Sec2Total ~ factor(Treatment)*Time +  Edu + Gender + Age + Race + (1 | ID), data  = datAnalysisAll[[i]])
+}
+
+outputAnova = NULL
+for(i in 1:m){
+  outputAnova[[i]] = anova(outputReg[[i]], outputRegNoPoly[[i]], outputRegNull[[i]])
+}
+outputAnova
+
+iccOutput = NULL
+for(i in 1:m){
+ iccOutput[[i]] = icc(outputRegNull[[i]]) 
+}
+iccOutput
+
+
+```
+Now model one diagnoistics 
+In the paper if you need to cite these statistics just give a range
+```{r}
+rSquare = NULL
+for(i in 1:m){
+  rSquare[[i]]= r.squaredLR(outputReg[[i]])
+}
+rSquare
+
+residModelLevel1 = NULL
+for(i in 1:m){
+  residModelLevel1[[i]] = HLMresid(outputReg[[i]], level = 1, standardize = TRUE)
+}
+for(i in 1:m){
+hist(residModelLevel1[[i]])
+}
+
+residModelLevel2 = NULL
+for(i in 1:m){
+residModelLevel2[[i]] = HLMresid(outputReg[[i]], level = "ID", standardize = TRUE)
+}
+
+for(i in 1:m){
+hist(residModelLevel2[[i]])
+}
+
+
+heteroskedasticOutput = NULL
+for(i in 1:m){
+ heteroskedasticOutput[[i]] = heteroskedastic(outputReg[[i]])
+}
+heteroskedasticOutput
+
+
+multicollinOutput = NULL
+for(i in 1:m){
+  multicollinOutput[[i]] = multicollin(outputReg[[i]])
+}
+multicollinOutput
+
+```
+Now moderator model
+```{r}
+modGraph = NULL
+for(i in 1:m){
+  modGraph[[i]] = cat_plot(model = outputReg[[i]], pred = "Time", modx = "Treatment", cluster = "ID", data = datAnalysisAllComplete[[i]])
+}
+modGraph
+```
+Model one with moderators 
+Edu, Gender, Age, and Race
+```{r}
+
+datAnalysisAll[[1]]
+output = list()
+outputReg = list()
+coef_output =  NULL
+se_output = NULL
+rSquared = NULL
+
+for(i in 1:m){
+  output[[i]] = lmer(Sec2Total ~ factor(Treatment)*Time*Edu +  Edu + Gender + Age + Race + (1 | ID), data  = datAnalysisAll[[i]])
+  outputReg[[i]] = output[[i]]
+  rSquared[[i]] = r.squaredGLMM(output[[i]])
+  output[[i]] = summary(output[[i]])
+  coef_output[[i]] = output[[i]]$coefficients[,1]
+  se_output[[i]] = output[[i]]$coefficients[,2]
+}
+coef_output = data.frame(coef_output)
+coef_output
+quickTrans = function(x){
+  x = data.frame(x)
+  x = t(x)
+  x = data.frame(x)
+}
+coef_output = quickTrans(coef_output)
+coef_output
+se_output = quickTrans(se_output)
+
+# Figure out the degrees of freedom 
+
+#coefsAll = mi.meld(q = coef_output, se = se_output)
+
+meldAllT_stat = function(x,y){
+  coefsAll = mi.meld(q = x, se = y)
+  coefs1 = t(data.frame(coefsAll$q.mi))
+  ses1 = t(data.frame(coefsAll$se.mi))
+  z_stat = coefs1/ses1
+  p = 2*pnorm(-abs(z_stat))
+  return(data.frame(coefs1, ses1, z_stat, p))
+}
+
+results = meldAllT_stat(coef_output, se_output); results
+round(results,3) 
+
+output = list()
+outputReg = list()
+coef_output =  NULL
+se_output = NULL
+rSquared = NULL
+
+# Poly 2 won't work for this model
+for(i in 1:m){
+  output[[i]] = lmer(Sec2Total ~ factor(Treatment)*Time*Gender +  Edu + Gender + Age + Race + (1 | ID), data  = datAnalysisAll[[i]])
+  outputReg[[i]] = output[[i]]
+  rSquared[[i]] = r.squaredGLMM(output[[i]])
+  output[[i]] = summary(output[[i]])
+  coef_output[[i]] = output[[i]]$coefficients[,1]
+  se_output[[i]] = output[[i]]$coefficients[,2]
+}
+coef_output = data.frame(coef_output)
+coef_output
+quickTrans = function(x){
+  x = data.frame(x)
+  x = t(x)
+  x = data.frame(x)
+}
+coef_output = quickTrans(coef_output)
+coef_output
+se_output = quickTrans(se_output)
+
+# Figure out the degrees of freedom 
+
+#coefsAll = mi.meld(q = coef_output, se = se_output)
+
+meldAllT_stat = function(x,y){
+  coefsAll = mi.meld(q = x, se = y)
+  coefs1 = t(data.frame(coefsAll$q.mi))
+  ses1 = t(data.frame(coefsAll$se.mi))
+  z_stat = coefs1/ses1
+  p = 2*pnorm(-abs(z_stat))
+  return(data.frame(coefs1, ses1, z_stat, p))
+}
+
+results = meldAllT_stat(coef_output, se_output); results
+round(results,3) 
+
+output = list()
+outputReg = list()
+coef_output =  NULL
+se_output = NULL
+rSquared = NULL
+
+for(i in 1:m){
+  output[[i]] = lmer(Sec2Total ~ factor(Treatment)*Time*Age + Treatment + Time +  Edu + Gender + Age + Race + (1 | ID), data  = datAnalysisAll[[i]])
+  outputReg[[i]] = output[[i]]
+  rSquared[[i]] = r.squaredGLMM(output[[i]])
+  output[[i]] = summary(output[[i]])
+  coef_output[[i]] = output[[i]]$coefficients[,1]
+  se_output[[i]] = output[[i]]$coefficients[,2]
+}
+coef_output = data.frame(coef_output)
+coef_output
+quickTrans = function(x){
+  x = data.frame(x)
+  x = t(x)
+  x = data.frame(x)
+}
+coef_output = quickTrans(coef_output)
+coef_output
+se_output = quickTrans(se_output)
+
+# Figure out the degrees of freedom 
+
+#coefsAll = mi.meld(q = coef_output, se = se_output)
+
+meldAllT_stat = function(x,y){
+  coefsAll = mi.meld(q = x, se = y)
+  coefs1 = t(data.frame(coefsAll$q.mi))
+  ses1 = t(data.frame(coefsAll$se.mi))
+  z_stat = coefs1/ses1
+  p = 2*pnorm(-abs(z_stat))
+  return(data.frame(coefs1, ses1, z_stat, p))
+}
+
+results = meldAllT_stat(coef_output, se_output); results
+round(results,3)
+
+
+output = list()
+outputReg = list()
+coef_output =  NULL
+se_output = NULL
+rSquared = NULL
+
+for(i in 1:m){
+  output[[i]] = lmer(Sec2Total ~ factor(Treatment)*Time*Race +  Edu + Gender + Age + Race + (1 | ID), data  = datAnalysisAll[[i]])
+  outputReg[[i]] = output[[i]]
+  rSquared[[i]] = r.squaredGLMM(output[[i]])
+  output[[i]] = summary(output[[i]])
+  coef_output[[i]] = output[[i]]$coefficients[,1]
+  se_output[[i]] = output[[i]]$coefficients[,2]
+}
+coef_output = data.frame(coef_output)
+coef_output
+quickTrans = function(x){
+  x = data.frame(x)
+  x = t(x)
+  x = data.frame(x)
+}
+coef_output = quickTrans(coef_output)
+coef_output
+se_output = quickTrans(se_output)
+
+# Figure out the degrees of freedom 
+
+#coefsAll = mi.meld(q = coef_output, se = se_output)
+
+meldAllT_stat = function(x,y){
+  coefsAll = mi.meld(q = x, se = y)
+  coefs1 = t(data.frame(coefsAll$q.mi))
+  ses1 = t(data.frame(coefsAll$se.mi))
+  z_stat = coefs1/ses1
+  p = 2*pnorm(-abs(z_stat))
+  return(data.frame(coefs1, ses1, z_stat, p))
+}
+
+results = meldAllT_stat(coef_output, se_output); results
+round(results,3) 
+```
+Now get contrats
+```{r}
+
+K = matrix(c(rep(0,11), 1,-1),1)
+
+t = NULL
+for(i in 1:m){
+  t[[i]] = glht(outputReg[[i]], linfct = K)
+  t[[i]] = summary(t[[i]])
+}
+t
+# No way to systematically grab the standard errors so just ballpark.  If significant maybe do something else.
+
+```
+######################
+Model 3
+######################
+Now run model 3
+
+```{r}
+output = list()
+outputReg = list()
+coef_output =  NULL
+se_output = NULL
+rSquared = NULL
+df = NULL
+
+for(i in 1:m){
+  output[[i]] = lmer(Sec3Total ~ factor(Treatment)*poly(Time, 2) +  Edu + Gender + Age + Race + (1 | ID), data  = datAnalysisAll[[i]])
+  outputReg[[i]] = output[[i]]
+  rSquared[[i]] = r.squaredGLMM(output[[i]])
+  output[[i]] = summary(output[[i]])
+  coef_output[[i]] = output[[i]]$coefficients[,1]
+  se_output[[i]] = output[[i]]$coefficients[,2]
+  df[[i]] = output[[i]]$coefficients[,3]
+}
+coef_output = data.frame(coef_output)
+coef_output
+quickTrans = function(x){
+  x = data.frame(x)
+  x = t(x)
+  x = data.frame(x)
+}
+coef_output = quickTrans(coef_output)
+coef_output
+se_output = quickTrans(se_output)
+
+# Figure out the degrees of freedom 
+
+#coefsAll = mi.meld(q = coef_output, se = se_output)
+
+meldAllT_stat = function(x,y){
+  coefsAll = mi.meld(q = x, se = y)
+  coefs1 = t(data.frame(coefsAll$q.mi))
+  ses1 = t(data.frame(coefsAll$se.mi))
+  z_stat = coefs1/ses1
+  p = 2*pnorm(-abs(z_stat))
+  return(data.frame(coefs1, ses1, z_stat, p))
+}
+
+results = meldAllT_stat(coef_output, se_output); results
+round(results,3) 
+
 ```
 
-Model two 
+Model 3 model comparision
+First develop null models
+Then compare the no poly term with the poly term
+
+Need output regular (Reg) for model comparision cannot compare a summary of a model to another summary of a model
 ```{r}
-## Final model goes here
-modelOutcome2 = lmer(Sec2Total ~ Treatment*Time + Edu + Gender + Age + Race + (1 | ID),  data = datPrePostAnalysisComplete)
-summary(modelOutcome2)
-datPrePostAnalysisComplete$Treatment
-resid2 = HLMresid(modelOutcome2, level = 1, standardize  = TRUE)
-head(resid2)
+outputRegNull = list()
 
-# R^2
-r.squaredLR(modelOutcome2)
+for(i in 1:m){
+  outputRegNull[[i]] = lmer(Sec3Total ~  + (1 | ID), data  = datAnalysisAll[[i]])
+}
 
-## Plotting the interaction effect
-cat_plot(modelOutcome2, pred = "Time", modx = "Treatment", cluster = "ID")
+outputRegNoPoly = list()
+for(i in 1:m){
+outputRegNoPoly[[i]] = lmer(Sec3Total ~ factor(Treatment)*Time +  Edu + Gender + Age + Race + (1 | ID), data  = datAnalysisAll[[i]])
+}
 
-###  Robust model here same results
-modelOutcome2Robust = rlmer(Sec2Total ~ Treatment*Time + Edu + Gender + Age + Race + (1 | ID),  data = datPrePostAnalysisComplete)
-# Get p-values
-coefs = data.frame(coef(summary(modelOutcome2Robust)))
-coefs$p.z <- 2 * (1 - pnorm(abs(coefs$t.value)))
-coefs
+outputAnova = NULL
+for(i in 1:m){
+  outputAnova[[i]] = anova(outputReg[[i]], outputRegNoPoly[[i]], outputRegNull[[i]])
+}
+outputAnova
 
+iccOutput = NULL
+for(i in 1:m){
+ iccOutput[[i]] = icc(outputRegNull[[i]]) 
+}
+iccOutput
 
-### Getting residuals for level one
-residModel2Level1 = HLMresid(modelOutcome2, level = 1, standardize = TRUE)
-
-head(residModel2Level1)
-ggplot_qqnorm(x = residModel2Level1, line = "rlm")
-hist(residModel2Level1)
-summary(residModel2Level1)
-
-### Getting residuals for level two
-residModel2Level2 = HLMresid(modelOutcome2, level = "ID", standardize = TRUE)
-head(residModel2Level2)
-ggplot_qqnorm(x = residModel2Level2$`(Intercept)`, line = "rlm")
-hist(residModel2Level2)
-summary(residModel2Level2)
 ```
-Model two moderators
+Now model one diagnoistics 
+In the paper if you need to cite these statistics just give a range
 ```{r}
-## Try model two with different moderators
-modelOutcome2Age = lmer(Sec2Total ~ Treatment*Time*Age + Edu + Gender  + Race + (1 | ID),  data = datPrePostAnalysisComplete)
-summary(modelOutcome2Age)
+rSquare = NULL
+for(i in 1:m){
+  rSquare[[i]]= r.squaredLR(outputReg[[i]])
+}
+rSquare
 
-modelOutcome2Edu = lmer(Sec2Total ~ Treatment*Time*Edu + Age + Edu + Gender  + Race + (1 | ID),  data = datPrePostAnalysisComplete)
-summary(modelOutcome2Edu)
+residModelLevel1 = NULL
+for(i in 1:m){
+  residModelLevel1[[i]] = HLMresid(outputReg[[i]], level = 1, standardize = TRUE)
+}
+for(i in 1:m){
+hist(residModelLevel1[[i]])
+}
 
-modelOutcome2Gender = lmer(Sec2Total ~ Treatment*Time*Gender + Age + Edu + Gender  + Race + (1 | ID),  data = datPrePostAnalysisComplete)
-summary(modelOutcome2Gender)
+residModelLevel2 = NULL
+for(i in 1:m){
+residModelLevel2[[i]] = HLMresid(outputReg[[i]], level = "ID", standardize = TRUE)
+}
 
-modelOutcome2Race = lmer(Sec2Total ~ Treatment*Time*Race + Age + Edu + Gender  + Race + (1 | ID),  data = datPrePostAnalysisComplete)
-summary(modelOutcome2Race)
+for(i in 1:m){
+hist(residModelLevel2[[i]])
+}
+
+heteroskedasticOutput = NULL
+for(i in 1:m){
+ heteroskedasticOutput[[i]] = heteroskedastic(outputReg[[i]])
+}
+heteroskedasticOutput
+
+
+multicollinOutput = NULL
+for(i in 1:m){
+  multicollinOutput[[i]] = multicollin(outputReg[[i]])
+}
+multicollinOutput
+
+
 ```
-
-
-Model three 
+Now moderator model
 ```{r}
-## Final model goes here
-modelOutcome3 = lmer(Sec3Total ~ Treatment*Time + Edu + Gender + Age + Race + (1 | ID),  data = datPrePostAnalysisComplete)
-summary(modelOutcome3)
-
-## Plotting the interaction effect
-cat_plot(modelOutcome3, pred = "Time", modx = "Treatment", cluster = "ID")
-
-## R^2
-r.squaredLR(modelOutcome3)
-
-
-## Robust version
-modelOutcome3Robust = rlmer(Sec3Total ~ Treatment*Time + Edu + Gender + Age + Race + (1 | ID),  data = datPrePostAnalysisComplete)
-summary(modelOutcome3Robust)
-coefs = data.frame(coef(summary(modelOutcome3Robust)))
-coefs$p.z <- 2 * (1 - pnorm(abs(coefs$t.value)))
-coefs
-
-### Getting residuals for level one
-residModel3Level1 = HLMresid(modelOutcome3, level = 1, standardize = TRUE)
-
-head(residModel3Level1)
-ggplot_qqnorm(x = residModel3Level1, line = "rlm")
-hist(residModel3Level1)
-summary(residModel3Level1)
-
-### Getting residuals for level two
-residModel3Level2 = HLMresid(modelOutcome3, level = "ID", standardize = TRUE)
-head(residModel3Level2)
-ggplot_qqnorm(x = residModel3Level2$`(Intercept)`, line = "rlm")
-hist(residModel3Level2)
-summary(residModel3Level2)
+modGraph = NULL
+for(i in 1:m){
+  modGraph[[i]] = cat_plot(model = outputReg[[i]], pred = "Time", modx = "Treatment", cluster = "ID", data = datAnalysisAllComplete[[i]])
+}
+modGraph
 ```
-Model three moderators
+Model three with moderators 
+Edu, Gender, Age, and Race
 ```{r}
-## Try model two with different moderators
-modelOutcome3Age = lmer(Sec3Total ~ Treatment*Time*Age + Edu + Gender  + Race + (1 | ID),  data = datPrePostAnalysisComplete)
-summary(modelOutcome3Age)
+output = list()
+outputReg = list()
+coef_output =  NULL
+se_output = NULL
+rSquared = NULL
 
-modelOutcome3Edu = lmer(Sec3Total ~ Treatment*Time*Edu + Age + Edu + Gender  + Race + (1 | ID),  data = datPrePostAnalysisComplete)
-summary(modelOutcome3Edu)
+for(i in 1:m){
+  output[[i]] = lmer(Sec3Total ~ factor(Treatment)*Time*Edu +  Edu + Gender + Age + Race + (1 | ID), data  = datAnalysisAll[[i]])
+  outputReg[[i]] = output[[i]]
+  rSquared[[i]] = r.squaredGLMM(output[[i]])
+  output[[i]] = summary(output[[i]])
+  coef_output[[i]] = output[[i]]$coefficients[,1]
+  se_output[[i]] = output[[i]]$coefficients[,2]
+}
+coef_output = data.frame(coef_output)
+coef_output
+quickTrans = function(x){
+  x = data.frame(x)
+  x = t(x)
+  x = data.frame(x)
+}
+coef_output = quickTrans(coef_output)
+coef_output
+se_output = quickTrans(se_output)
+
+# Figure out the degrees of freedom 
+
+#coefsAll = mi.meld(q = coef_output, se = se_output)
+
+meldAllT_stat = function(x,y){
+  coefsAll = mi.meld(q = x, se = y)
+  coefs1 = t(data.frame(coefsAll$q.mi))
+  ses1 = t(data.frame(coefsAll$se.mi))
+  z_stat = coefs1/ses1
+  p = 2*pnorm(-abs(z_stat))
+  return(data.frame(coefs1, ses1, z_stat, p))
+}
+
+results = meldAllT_stat(coef_output, se_output); results
+round(results,3) 
+
+output = list()
+outputReg = list()
+coef_output =  NULL
+se_output = NULL
+rSquared = NULL
+
+for(i in 1:m){
+  output[[i]] = lmer(Sec3Total ~ factor(Treatment)*Time*Gender +  Edu + Gender + Age + Race + (1 | ID), data  = datAnalysisAll[[i]])
+  outputReg[[i]] = output[[i]]
+  rSquared[[i]] = r.squaredGLMM(output[[i]])
+  output[[i]] = summary(output[[i]])
+  coef_output[[i]] = output[[i]]$coefficients[,1]
+  se_output[[i]] = output[[i]]$coefficients[,2]
+}
+coef_output = data.frame(coef_output)
+coef_output
+quickTrans = function(x){
+  x = data.frame(x)
+  x = t(x)
+  x = data.frame(x)
+}
+coef_output = quickTrans(coef_output)
+coef_output
+se_output = quickTrans(se_output)
+
+# Figure out the degrees of freedom 
+
+#coefsAll = mi.meld(q = coef_output, se = se_output)
+
+meldAllT_stat = function(x,y){
+  coefsAll = mi.meld(q = x, se = y)
+  coefs1 = t(data.frame(coefsAll$q.mi))
+  ses1 = t(data.frame(coefsAll$se.mi))
+  z_stat = coefs1/ses1
+  p = 2*pnorm(-abs(z_stat))
+  return(data.frame(coefs1, ses1, z_stat, p))
+}
+
+results = meldAllT_stat(coef_output, se_output); results
+round(results,3) 
+
+output = list()
+outputReg = list()
+coef_output =  NULL
+se_output = NULL
+rSquared = NULL
+
+for(i in 1:m){
+  output[[i]] = lmer(Sec3Total ~ factor(Treatment)*Time*Age +  Edu + Gender + Age + Race + (1 | ID), data  = datAnalysisAll[[i]])
+  outputReg[[i]] = output[[i]]
+  rSquared[[i]] = r.squaredGLMM(output[[i]])
+  output[[i]] = summary(output[[i]])
+  coef_output[[i]] = output[[i]]$coefficients[,1]
+  se_output[[i]] = output[[i]]$coefficients[,2]
+}
+coef_output = data.frame(coef_output)
+coef_output
+quickTrans = function(x){
+  x = data.frame(x)
+  x = t(x)
+  x = data.frame(x)
+}
+coef_output = quickTrans(coef_output)
+coef_output
+se_output = quickTrans(se_output)
+
+# Figure out the degrees of freedom 
+
+#coefsAll = mi.meld(q = coef_output, se = se_output)
+
+meldAllT_stat = function(x,y){
+  coefsAll = mi.meld(q = x, se = y)
+  coefs1 = t(data.frame(coefsAll$q.mi))
+  ses1 = t(data.frame(coefsAll$se.mi))
+  z_stat = coefs1/ses1
+  p = 2*pnorm(-abs(z_stat))
+  return(data.frame(coefs1, ses1, z_stat, p))
+}
+
+results = meldAllT_stat(coef_output, se_output); results
+round(results,3)
 
 
-modelOutcome3Gender = lmer(Sec3Total ~ Treatment*Time*Gender + Age + Edu + Gender  + Race + (1 | ID),  data = datPrePostAnalysisComplete)
-summary(modelOutcome3Gender)
+output = list()
+outputReg = list()
+coef_output =  NULL
+se_output = NULL
+rSquared = NULL
 
-# Cross over interaction .09 maybe worth talking about
-modelOutcome3Race = lmer(Sec3Total ~ Treatment*Time*Race + Age + Edu + Gender  + Race + (1 | ID),  data = datPrePostAnalysisComplete)
-summary(modelOutcome3Race)
+for(i in 1:m){
+  output[[i]] = lmer(Sec3Total ~ factor(Treatment)*Time*Race +  Edu + Gender + Age + Race + (1 | ID), data  = datAnalysisAll[[i]])
+  outputReg[[i]] = output[[i]]
+  rSquared[[i]] = r.squaredGLMM(output[[i]])
+  output[[i]] = summary(output[[i]])
+  coef_output[[i]] = output[[i]]$coefficients[,1]
+  se_output[[i]] = output[[i]]$coefficients[,2]
+}
+coef_output = data.frame(coef_output)
+coef_output
+quickTrans = function(x){
+  x = data.frame(x)
+  x = t(x)
+  x = data.frame(x)
+}
+coef_output = quickTrans(coef_output)
+coef_output
+se_output = quickTrans(se_output)
+
+# Figure out the degrees of freedom 
+
+#coefsAll = mi.meld(q = coef_output, se = se_output)
+
+meldAllT_stat = function(x,y){
+  coefsAll = mi.meld(q = x, se = y)
+  coefs1 = t(data.frame(coefsAll$q.mi))
+  ses1 = t(data.frame(coefsAll$se.mi))
+  z_stat = coefs1/ses1
+  p = 2*pnorm(-abs(z_stat))
+  return(data.frame(coefs1, ses1, z_stat, p))
+}
+
+results = meldAllT_stat(coef_output, se_output); results
+round(results,3) 
 ```
-
-
-
-Model 4 
+Now get contrats
 ```{r}
-## Final model goes here
-modelOutcome4 = lmer(Sec4Total ~ Treatment*Time + Edu + Gender + Age + Race + (1 | ID),  data = datPrePostAnalysisComplete)
-summary(modelOutcome4)
+K = matrix(c(rep(0,11), 1, -1), 1)
+summary(outputReg[[1]])
 
+t = NULL
+for(i in 1:m){
+  t[[i]] = glht(outputReg[[i]], linfct = K)
+  t[[i]] = summary(t[[i]])
+}
+t
+# No way to systematically grab the standard errors so just ballpark.  If significant maybe do something else.
 
-## Plotting the interaction effect
-cat_plot(modelOutcome4, pred = "Time", modx = "Treatment", cluster = "ID")
-
-##R^2
-r.squaredLR(modelOutcome4)
-
-
-##Robust version
-modelOutcome4Robust = rlmer(Sec4Total ~ Treatment*Time + Edu + Gender + Age + Race + (1 | ID),  data = datPrePostAnalysisComplete)
-summary(modelOutcome4Robust)
-coefs = data.frame(coef(summary(modelOutcome4Robust)))
-coefs$p.z <- 2 * (1 - pnorm(abs(coefs$t.value)))
-coefs
-
-### Getting residuals for level one
-residModel4Level1 = HLMresid(modelOutcome4, level = 1, standardize = TRUE)
-
-head(residModel4Level1)
-ggplot_qqnorm(x = residModel4Level1, line = "rlm")
-hist(residModel4Level1)
-summary(residModel4Level1)
-
-### Getting residuals for level two
-residModel4Level2 = HLMresid(modelOutcome4, level = "ID", standardize = TRUE)
-head(residModel4Level2)
-ggplot_qqnorm(x = residModel4Level2$`(Intercept)`, line = "rlm")
-hist(residModel4Level2)
-summary(residModel4Level2)
-
-leverage(modelOutcome4, level = 1)
 ```
-Model four moderators
+######################
+Model 4
+######################
+Now run model 4
+
 ```{r}
-## Try model two with different moderators
-modelOutcome4Age = lmer(Sec4Total ~ Treatment*Time*Age + Edu + Gender  + Race + (1 | ID),  data = datPrePostAnalysisComplete)
-summary(modelOutcome4Age)
+output = list()
+outputReg = list()
+coef_output =  NULL
+se_output = NULL
+rSquared = NULL
+df = NULL
 
-modelOutcome4Edu = lmer(Sec4Total ~ Treatment*Time*Edu + Age + Edu + Gender  + Race + (1 | ID),  data = datPrePostAnalysisComplete)
-summary(modelOutcome4Edu)
+for(i in 1:m){
+  output[[i]] = lmer(Sec4Total ~ factor(Treatment)*poly(Time, 2) +  Edu + Gender + Age + Race + (1 | ID), data  = datAnalysisAll[[i]])
+  outputReg[[i]] = output[[i]]
+  rSquared[[i]] = r.squaredGLMM(output[[i]])
+  output[[i]] = summary(output[[i]])
+  coef_output[[i]] = output[[i]]$coefficients[,1]
+  se_output[[i]] = output[[i]]$coefficients[,2]
+  df[[i]] = output[[i]]$coefficients[,3]
+}
+coef_output = data.frame(coef_output)
+coef_output
+quickTrans = function(x){
+  x = data.frame(x)
+  x = t(x)
+  x = data.frame(x)
+}
+coef_output = quickTrans(coef_output)
+coef_output
+se_output = quickTrans(se_output)
 
-# Significant
-modelOutcome4Gender = lmer(Sec4Total ~ Treatment*Time*Gender + Age + Edu + Gender  + Race + (1 | ID),  data = datPrePostAnalysisComplete)
-summary(modelOutcome4Gender)
+# Figure out the degrees of freedom 
 
-cat_plot(modelOutcome4Gender, pred = "Time", modx = "Treatment", mod2 = "Gender", cluster = "ID")
+#coefsAll = mi.meld(q = coef_output, se = se_output)
 
+meldAllT_stat = function(x,y){
+  coefsAll = mi.meld(q = x, se = y)
+  coefs1 = t(data.frame(coefsAll$q.mi))
+  ses1 = t(data.frame(coefsAll$se.mi))
+  z_stat = coefs1/ses1
+  p = 2*pnorm(-abs(z_stat))
+  return(data.frame(coefs1, ses1, z_stat, p))
+}
 
-modelOutcome4Race = lmer(Sec4Total ~ Treatment*Time*Race + Age + Edu + Gender  + Race + (1 | ID),  data = datPrePostAnalysisComplete)
-summary(modelOutcome4Race)
+results = meldAllT_stat(coef_output, se_output); results
+round(results,3) 
+
 ```
 
+Model 4 model comparision
+First develop null models
+Then compare the no poly term with the poly term
 
-Extra code
+Need output regular (Reg) for model comparision cannot compare a summary of a model to another summary of a model
 ```{r}
-### Try random effects model cannot run too many covariates
-modelOutcome2Robust = rlmer(Sec2Total ~ Treatment*Time + Edu + Gender + Age + Race + (Time | ID),  data = datPrePostAnalysisComplete)
-# Get p-values
-coefs = data.frame(coef(summary(modelOutcome2Robust)))
-coefs$p.z <- 2 * (1 - pnorm(abs(coefs$t.value)))
-coefs
+outputRegNull = list()
 
-### Try random effects model try no covariates nope won't run either just random intercepts
-modelOutcome2Robust = rlmer(Sec2Total ~ Treatment*Time + (Time | ID),  data = datPrePostAnalysisComplete)
-# Get p-values
-coefs = data.frame(coef(summary(modelOutcome2Robust)))
-coefs$p.z <- 2 * (1 - pnorm(abs(coefs$t.value)))
-coefs
+for(i in 1:m){
+  outputRegNull[[i]] = lmer(Sec4Total ~  + (1 | ID), data  = datAnalysisAll[[i]])
+}
+
+outputRegNoPoly = list()
+for(i in 1:m){
+outputRegNoPoly[[i]] = lmer(Sec4Total ~ factor(Treatment)*Time +  Edu + Gender + Age + Race + (1 | ID), data  = datAnalysisAll[[i]])
+}
+
+outputAnova = NULL
+for(i in 1:m){
+  outputAnova[[i]] = anova(outputReg[[i]], outputRegNoPoly[[i]], outputRegNull[[i]])
+}
+outputAnova
+
+iccOutput = NULL
+for(i in 1:m){
+ iccOutput[[i]] = icc(outputRegNull[[i]]) 
+}
+iccOutput
+
 ```
-
-
-
-Extra code
+Now model one diagnoistics 
+In the paper if you need to cite these statistics just give a range
 ```{r}
-### Try random effects model cannot run too many covariates
-modelOutcome2Robust = rlmer(Sec2Total ~ Treatment*Time + Edu + Gender + Age + Race + (Time | ID),  data = datPrePost3monthAnalysisComplete)
-# Get p-values
-coefs = data.frame(coef(summary(modelOutcome2Robust)))
-coefs$p.z <- 2 * (1 - pnorm(abs(coefs$t.value)))
-coefs
+rSquare = NULL
+for(i in 1:m){
+  rSquare[[i]]= r.squaredLR(outputReg[[i]])
+}
+rSquare
 
-### Try random effects model try no covariates nope won't run either just random intercepts
-modelOutcome2Robust = rlmer(Sec2Total ~ Treatment*Time + (Time | ID),  data = datPrePost3monthAnalysisComplete)
-# Get p-values
-coefs = data.frame(coef(summary(modelOutcome2Robust)))
-coefs$p.z <- 2 * (1 - pnorm(abs(coefs$t.value)))
-coefs
+residModelLevel1 = NULL
+for(i in 1:m){
+  residModelLevel1[[i]] = HLMresid(outputReg[[i]], level = 1, standardize = TRUE)
+}
+for(i in 1:m){
+hist(residModelLevel1[[i]])
+}
+
+residModelLevel2 = NULL
+for(i in 1:m){
+residModelLevel2[[i]] = HLMresid(outputReg[[i]], level = "ID", standardize = TRUE)
+}
+
+for(i in 1:m){
+hist(residModelLevel2[[i]])
+}
+
+heteroskedasticOutput = NULL
+for(i in 1:m){
+ heteroskedasticOutput[[i]] = heteroskedastic(outputReg[[i]])
+}
+heteroskedasticOutput
+
+
+multicollinOutput = NULL
+for(i in 1:m){
+  multicollinOutput[[i]] = multicollin(outputReg[[i]])
+}
+multicollinOutput
+
+
 ```
+Now moderator model
+```{r}
+modGraph = NULL
+for(i in 1:m){
+  modGraph[[i]] = cat_plot(model = outputReg[[i]], pred = "Time", modx = "Treatment", cluster = "ID", data = datAnalysisAllComplete[[i]])
+}
+modGraph
+```
+Model three with moderators 
+Edu, Gender, Age, and Race
+```{r}
+output = list()
+outputReg = list()
+coef_output =  NULL
+se_output = NULL
+rSquared = NULL
+
+for(i in 1:m){
+  output[[i]] = lmer(Sec4Total ~ factor(Treatment)*Time*Edu +  Edu + Gender + Age + Race + (1 | ID), data  = datAnalysisAll[[i]])
+  outputReg[[i]] = output[[i]]
+  rSquared[[i]] = r.squaredGLMM(output[[i]])
+  output[[i]] = summary(output[[i]])
+  coef_output[[i]] = output[[i]]$coefficients[,1]
+  se_output[[i]] = output[[i]]$coefficients[,2]
+}
+coef_output = data.frame(coef_output)
+coef_output
+quickTrans = function(x){
+  x = data.frame(x)
+  x = t(x)
+  x = data.frame(x)
+}
+coef_output = quickTrans(coef_output)
+coef_output
+se_output = quickTrans(se_output)
+
+
+meldAllT_stat = function(x,y){
+  coefsAll = mi.meld(q = x, se = y)
+  coefs1 = t(data.frame(coefsAll$q.mi))
+  ses1 = t(data.frame(coefsAll$se.mi))
+  z_stat = coefs1/ses1
+  p = 2*pnorm(-abs(z_stat))
+  return(data.frame(coefs1, ses1, z_stat, p))
+}
+
+results = meldAllT_stat(coef_output, se_output); results
+round(results,3) 
+
+output = list()
+outputReg = list()
+coef_output =  NULL
+se_output = NULL
+rSquared = NULL
+
+for(i in 1:m){
+  output[[i]] = lmer(Sec4Total ~ factor(Treatment)*Time*Gender +  Edu + Gender + Age + Race + (1 | ID), data  = datAnalysisAll[[i]])
+  outputReg[[i]] = output[[i]]
+  rSquared[[i]] = r.squaredGLMM(output[[i]])
+  output[[i]] = summary(output[[i]])
+  coef_output[[i]] = output[[i]]$coefficients[,1]
+  se_output[[i]] = output[[i]]$coefficients[,2]
+}
+coef_output = data.frame(coef_output)
+coef_output
+quickTrans = function(x){
+  x = data.frame(x)
+  x = t(x)
+  x = data.frame(x)
+}
+coef_output = quickTrans(coef_output)
+coef_output
+se_output = quickTrans(se_output)
+
+# Figure out the degrees of freedom 
+
+#coefsAll = mi.meld(q = coef_output, se = se_output)
+
+meldAllT_stat = function(x,y){
+  coefsAll = mi.meld(q = x, se = y)
+  coefs1 = t(data.frame(coefsAll$q.mi))
+  ses1 = t(data.frame(coefsAll$se.mi))
+  z_stat = coefs1/ses1
+  p = 2*pnorm(-abs(z_stat))
+  return(data.frame(coefs1, ses1, z_stat, p))
+}
+
+results = meldAllT_stat(coef_output, se_output); results
+round(results,3) 
+
+output = list()
+outputReg = list()
+coef_output =  NULL
+se_output = NULL
+rSquared = NULL
+
+for(i in 1:m){
+  output[[i]] = lmer(Sec4Total ~ factor(Treatment)*Time*Age +  Edu + Gender + Age + Race + (1 | ID), data  = datAnalysisAll[[i]])
+  outputReg[[i]] = output[[i]]
+  rSquared[[i]] = r.squaredGLMM(output[[i]])
+  output[[i]] = summary(output[[i]])
+  coef_output[[i]] = output[[i]]$coefficients[,1]
+  se_output[[i]] = output[[i]]$coefficients[,2]
+}
+coef_output = data.frame(coef_output)
+coef_output
+quickTrans = function(x){
+  x = data.frame(x)
+  x = t(x)
+  x = data.frame(x)
+}
+coef_output = quickTrans(coef_output)
+coef_output
+se_output = quickTrans(se_output)
+
+# Figure out the degrees of freedom 
+
+#coefsAll = mi.meld(q = coef_output, se = se_output)
+
+meldAllT_stat = function(x,y){
+  coefsAll = mi.meld(q = x, se = y)
+  coefs1 = t(data.frame(coefsAll$q.mi))
+  ses1 = t(data.frame(coefsAll$se.mi))
+  z_stat = coefs1/ses1
+  p = 2*pnorm(-abs(z_stat))
+  return(data.frame(coefs1, ses1, z_stat, p))
+}
+
+results = meldAllT_stat(coef_output, se_output); results
+round(results,3)
+
+
+output = list()
+outputReg = list()
+coef_output =  NULL
+se_output = NULL
+rSquared = NULL
+
+for(i in 1:m){
+  output[[i]] = lmer(Sec4Total ~ factor(Treatment)*Time*Race +  Edu + Gender + Age + Race + (1 | ID), data  = datAnalysisAll[[i]])
+  outputReg[[i]] = output[[i]]
+  rSquared[[i]] = r.squaredGLMM(output[[i]])
+  output[[i]] = summary(output[[i]])
+  coef_output[[i]] = output[[i]]$coefficients[,1]
+  se_output[[i]] = output[[i]]$coefficients[,2]
+}
+coef_output = data.frame(coef_output)
+coef_output
+quickTrans = function(x){
+  x = data.frame(x)
+  x = t(x)
+  x = data.frame(x)
+}
+coef_output = quickTrans(coef_output)
+coef_output
+se_output = quickTrans(se_output)
+
+# Figure out the degrees of freedom 
+
+#coefsAll = mi.meld(q = coef_output, se = se_output)
+
+meldAllT_stat = function(x,y){
+  coefsAll = mi.meld(q = x, se = y)
+  coefs1 = t(data.frame(coefsAll$q.mi))
+  ses1 = t(data.frame(coefsAll$se.mi))
+  z_stat = coefs1/ses1
+  p = 2*pnorm(-abs(z_stat))
+  return(data.frame(coefs1, ses1, z_stat, p))
+}
+
+results = meldAllT_stat(coef_output, se_output); results
+round(results,3) 
+```
+Now get contrats
+```{r}
+K = matrix(c(rep(0,11), 1, -1), 1)
+
+t = NULL
+for(i in 1:m){
+  t[[i]] = glht(outputReg[[i]], linfct = K)
+  t[[i]] = summary(t[[i]])
+}
+t
+# No way to systematically grab the standard errors so just ballpark.  If significant maybe do something else.
+
+```
+
